@@ -1,0 +1,1013 @@
+#include <Arduino.h>
+//DEBUG
+#define DEBUG 1 
+#if DEBUG == 1
+#define debug(x) Serial.print(x) 
+#define debugln(x) Serial.println(x)
+#else
+#define debug(x)
+#define debugln(x)
+#endif
+
+
+
+//LED ROJO
+#define ROJO_T1 2
+int led_rojo_t1 = 1; //La lógica está invertida
+int ultimo_rojo_t1;
+
+// LED amarillo
+#define AMA_T1 3  
+int led_amarillo_t1 = 1;
+int ultimo_amarillo_t1;
+
+// LED verde
+#define VERDE_T1 4
+int led_verde_t1 = 1;
+int ultimo_verde_t1;
+
+// Tinaco número 2
+
+// LED rojo
+#define ROJO_T2 5
+int led_rojo_t2 = 1;
+int ultimo_rojo_t2;
+
+// LED amarillo
+#define AMA_T2 6
+int led_amarillo_t2 = 1;
+int ultimo_amarillo_t2;
+
+// LED verde
+#define VERDE_T2 7
+int led_verde_t2 = 1;
+int ultimo_verde_t2;
+
+/* VARIABLES STATE MACHINE 0*/
+//Tina es por Tinaco
+int state_tina1 = 0;
+int state_prev_tina1 = 0;
+// Pin de la bomba de agua SDA-A4
+int Bomba_agua = 9; 
+uint8_t led_bda = A4;
+//para llevar control sobre las veces que se enciende la bda en un día
+int suma_pog_caso_6 = 0;
+int suma_pog_caso_7 = 0;
+int suma_pog_caso_8 = 0;
+int suma_pog_caso_9 = 0;
+//tiempo inicial y final
+unsigned long t_bda = 0;
+unsigned long t_bda_0 = 0;
+// Tiempo de descanso de la bomba de agua 3000s son 50min en ms son 3000000
+//pondre 20 segundos de descanso para la prueba
+unsigned long tiempo_espera_bomba_encendido = 25000; 
+//Cuenta cuanto tiempo ha estado encendida la bda (bomba de agua)
+unsigned long cuenta_tiempo_0 = 0;
+unsigned long cuenta_tiempo_1 = 0;
+unsigned long cuenta_tiempo_2 = 0;
+unsigned long cuenta_tiempo_3 = 0;
+//unsigned long cuenta_tiempo_total = 0;
+//unsigned long cuenta_prev_tiempo_total = 0;
+
+//variables para almacenar el ultimo tiempo que esta encendida la bda
+unsigned long last_cuenta_0 = 0;
+unsigned long last_cuenta_1 = 0;
+unsigned long last_cuenta_2 = 0;
+unsigned long last_cuenta_3 = 0;
+//unsigned long last_cuenta_4 = 0;
+
+//Timer de 24h 
+//unsigned long cuenta_dia = 0;
+//Timer para checar las 6h y 24h
+unsigned long work_bda_timer_6h = 0;
+unsigned long work_bda_timer_24h = 0;
+unsigned long work_bda_timer_0 = 0;
+//Si ya trabajo 6h la bomba en un día // 1h para bda del hogar 86400000ms
+//para la prueba pondré 25 segundos
+unsigned long work_bda_24h = 250000; // Este debe ser 24h en ms: 86400000;
+//Este es el tiempo que se esta guardando y se compara con el tiempo del oscilador
+//para la prueba pondré 10 segundos 
+unsigned long work_bda_6h = 120000; // este debe ser 6h en ms //Voy a poner 2h para bda del hogar : 7200000;
+//timer para descanso de bomba
+unsigned long descanso_bda = 0;
+unsigned long descanso_bda_0 = 0; 
+// para la prueba pondré 10 segundos de descanso
+unsigned long tiempo_espera_bomba_apagado = 10000; //20 min de descanso: 1200000;
+// Tiempo de descanso de la  bomba despues de haber trabajado 6h en 1 día
+//24 hrs son 86400000ms 86400s
+unsigned long descanso_bda_dia = 0;
+unsigned long descanso_bda_0_dia = 0;
+// para la prueba pondré 20 segundos de descanso
+unsigned long tiempo_descanso_dia_bomba = 200000; // este ya debe ser 24h // descanso de 20min para bda del hogar
+int conteo_bda = 0;
+
+//RANDOM VARIABLES
+int pog_1 = 0;
+/*Son 7 elementos porque espero que máximo en un día 
+en el caso 6 o 7 u 8 u 9 se repitan y se reinicie la cuenta
+por si la bda ya cumplio 6h de trabajo en un día*/
+//unsigned long guarda_suma_lista_caso_6[7] = {};
+//unsigned long guarda_suma_lista_caso_7[7] = {};
+//unsigned long guarda_suma_lista_caso_8[7] = {};
+//unsigned long guarda_suma_lista_caso_9[7] = {};
+// Contadores para los for loops que voy a crear para iterar y almacenar los elementos en el array
+//int counter_caso_6 = 0;
+//int counter_caso_7 = 0;
+//int counter_caso_8 = 0;
+//int counter_caso_9 = 0;
+
+//Maximo debe almacenar 21600000 milisegundos que son 6h
+unsigned long suma_lista_caso_6 = 0;
+unsigned long suma_lista_caso_7 = 0;
+unsigned long suma_lista_caso_8 = 0;
+unsigned long suma_lista_caso_9 = 0;
+unsigned long suma_total = 0;
+//CUENTA TRABAJO DE LA BDA AL DÍA
+int state_wbda = 0;
+int state_prev_wbda = 0;
+////Variables de tiempo de 24 horas
+//unsigned long tiempo_dia_bda = 0;
+//unsigned long tiempo_dia_bda_0 = 0;
+//unsigned long tiempo_de_un_dia = 2400; //Debe contar menos de 24h
+
+/* VARIABLES STATE MACHINE 1*/
+int state_tina2 = 0;
+int state_prev_tina2 = 0;
+//declaro pin al cual aplicaré debounce pero ya estan definidos
+//val_pin_rojo_t1 leera si esta en alto o bajo el cable
+int val_pin_rojo_t1 = 0;
+//Variables de tiempo
+unsigned long t_rojo_t1 = 0;
+unsigned long t_0_rojo_t1 = 0;
+//para la prueba utilizaré 3segundos continuos
+unsigned long bounce_delay_rojo_t1 = 3000; //Utilizaré 2.5 segundos: 2500
+
+/* VARIABLES STATE MACHINE 2*/
+int state_tina3 = 0;
+int state_prev_tina3 = 0;
+int val_pin_ama_t1 = 0;
+unsigned long t_ama_t1 = 0;
+unsigned long t_0_ama_t1 = 0;
+unsigned long bounce_delay_ama_t1 = 3000;
+
+/* VARIABLES STATE MACHINE 3*/
+int state_tina4 = 0;
+int state_prev_tina4 = 0;
+int val_pin_verde_t1 = 0;
+unsigned long t_verde_t1 = 0;
+unsigned long t_0_verde_t1 = 0;
+unsigned long bounce_delay_verde_t1 = 3000;
+
+/* VARIABLES STATE MACHINE 4*/
+int state_tina5 = 0;
+int state_prev_tina5 = 0;
+int val_pin_rojo_t2 = 0;
+unsigned long t_rojo_t2 = 0;
+unsigned long t_0_rojo_t2 = 0;
+unsigned long bounce_delay_rojo_t2 = 3000;
+
+/* VARIABLES STATE MACHINE 5*/
+int state_tina6 = 0;
+int state_prev_tina6 = 0;
+int val_pin_ama_t2 = 0;
+unsigned long t_ama_t2 = 0;
+unsigned long t_0_ama_t2 = 0;
+unsigned long bounce_delay_ama_t2 = 3000;
+
+/* VARIABLES STATE MACHINE 6*/
+int state_tina7 = 0;
+int state_prev_tina7 = 0;
+int val_pin_verde_t2 = 0;
+unsigned long t_verde_t2 = 0;
+unsigned long t_0_verde_t2 = 0;
+unsigned long bounce_delay_verde_t2 = 3000;
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  pinMode(ROJO_T1, INPUT_PULLUP);
+  pinMode(AMA_T1, INPUT_PULLUP);
+  pinMode(VERDE_T1, INPUT_PULLUP);
+  pinMode(AMA_T2, INPUT_PULLUP);
+  pinMode(ROJO_T2, INPUT_PULLUP);
+  pinMode(VERDE_T2, INPUT_PULLUP);
+  pinMode(Bomba_agua, OUTPUT);
+  pinMode(led_bda, OUTPUT);
+   //digitalWrite(ledi, LOW);
+}
+
+//Estas maquinas de estados funcionan para evitar lo revotes del agua cuando esta entrando en un estado
+void SM_LROJO_T1() //STATE_TINA2 // Qué sucede cuando se enciende el electrodo con el led rojo del tinaco 1?
+{
+  //Afuera del switch
+  //INVIERTI LAS POLARIZACIONES 
+  val_pin_rojo_t1 = digitalRead(ROJO_T1);
+  state_prev_tina2 = state_tina2;
+
+  switch (state_tina2)
+  {
+
+  case 0: //RESET
+   //Catch all "home base" for the State MAchine
+    state_tina2 = 1;
+    break;
+  
+  case 1: //WAIT
+    //Wait for the switch to go low
+    if(val_pin_rojo_t1 == LOW){
+      state_tina2 = 2;
+    }
+    break;
+  
+  case 2: //ARMING
+  //Empezamos a contar si este low es un low de 2 segundos
+    t_0_rojo_t1 = millis();
+    state_tina2 = 3;
+    break;
+
+  case 3: //ARMED
+  //Check to see if the proper has delay has passed.  If a bounce occures then RESET
+    val_pin_rojo_t1 = digitalRead(ROJO_T1);
+    //Check the time
+    t_rojo_t1 = millis();
+    
+    if (val_pin_rojo_t1 == HIGH)
+    {
+      led_rojo_t1 = 1;
+      state_tina2 = 0;
+    }
+    if(t_rojo_t1 - t_0_rojo_t1 > bounce_delay_rojo_t1){
+      //suma_rojo_t1++;
+      state_tina2 = 4;
+    }
+    break;
+
+  case 4: //TRIGGERED
+    led_rojo_t1 = 0;
+    debugln("TRIGGERED LED_ROJO_T1");
+    state_tina2 = 0;
+    //state_tina2 = 5;
+    break;
+
+  }
+}
+
+void SM_LAMA_T1() //STATE_TINA3 // Qué sucede cuando se enciende el electrodo con el led amarillo del tinaco 1?
+{
+  //Afuera del switch
+  //INVIERTI LAS POLARIZACIONES 
+  val_pin_ama_t1 = digitalRead(AMA_T1);
+  state_prev_tina3 = state_tina3;
+
+  switch (state_tina3)
+  {
+
+  case 0: //RESET
+   //Catch all "home base" for the State MAchine
+    state_tina3 = 1;
+    break;
+  
+  case 1: //WAIT
+    //Wait for the switch to go low
+    if(val_pin_ama_t1 == LOW){
+      state_tina3 = 2;
+    }
+    break;
+  
+  case 2: //ARMING
+  //Empezamos a contar si este low es un low de 2 segundos
+    t_0_ama_t1 = millis();
+    state_tina3 = 3;
+    break;
+
+  case 3: //ARMED
+  //Check to see if the proper has delay has passed.  If a bounce occures then RESET
+    val_pin_ama_t1 = digitalRead(AMA_T1);
+    //Check the time
+    t_ama_t1 = millis();
+    
+    if (val_pin_ama_t1 == HIGH)
+    {
+      led_amarillo_t1 = 1;
+      state_tina3 = 0;
+    }
+    if(t_ama_t1 - t_0_ama_t1 > bounce_delay_ama_t1){
+      state_tina3 = 4;
+    }
+    break;
+
+  case 4: //TRIGGERED
+    led_amarillo_t1 = 0;
+    debugln("TRIGGERED LED_AMARILLO_T1");
+    state_tina3 = 0;
+    //state_tina2 = 5;
+    break;
+
+  }
+}
+
+void SM_LVERDE_T1() // Qué sucede cuando se enciende el electrodo con el led verde del tinaco 1?
+{
+  //Afuera del switch
+  //INVIERTI LAS POLARIZACIONES 
+  val_pin_verde_t1 = digitalRead(VERDE_T1);
+  state_prev_tina4 = state_tina4;
+
+  switch (state_tina4)
+  {
+
+  case 0: //RESET
+   //Catch all "home base" for the State MAchine
+    state_tina4 = 1;
+    break;
+  
+  case 1: //WAIT
+    //Wait for the switch to go low
+    if(val_pin_verde_t1 == LOW){
+      state_tina4 = 2;
+    }
+    break;
+  
+  case 2: //ARMING
+  //Empezamos a contar si este low es un low de 2 segundos
+    t_0_verde_t1 = millis();
+    state_tina4 = 3;
+    break;
+
+  case 3: //ARMED
+  //Check to see if the proper has delay has passed.  If a bounce occures then RESET
+    val_pin_verde_t1 = digitalRead(VERDE_T1);
+    //Check the time
+    t_verde_t1 = millis();
+    
+    if (val_pin_verde_t1 == HIGH)
+    {
+      led_verde_t1 = 1;
+      state_tina4 = 0;
+    }
+    if(t_verde_t1 - t_0_verde_t1 > bounce_delay_verde_t1){
+      state_tina4 = 4;
+    }
+    break;
+
+  case 4: //TRIGGERED
+    led_verde_t1 = 0;
+    debugln("TRIGGERED LED_VERDE_T1");
+    state_tina4 = 0;
+    //state_tina2 = 5;
+    break;
+
+  }
+}
+
+void SM_LROJO_T2() //STATE_TINA5 Qué sucede cuando se enciende el electrodo con el led rojo del tinaco 2?
+{
+  //Afuera del switch
+  //INVIERTI LAS POLARIZACIONES 
+  val_pin_rojo_t2 = digitalRead(ROJO_T2);
+  state_prev_tina5 = state_tina5;
+
+  switch (state_tina5)
+  {
+
+  case 0: //RESET
+   //Catch all "home base" for the State MAchine
+    state_tina5 = 1;
+    break;
+  
+  case 1: //WAIT
+    //Wait for the switch to go low
+    if(val_pin_rojo_t2 == LOW){
+      state_tina5 = 2;
+    }
+    break;
+  
+  case 2: //ARMING
+  //Empezamos a contar si este low es un low de 2 segundos
+    t_0_rojo_t2 = millis();
+    state_tina5 = 3;
+    break;
+
+  case 3: //ARMED
+  //Check to see if the proper has delay has passed.  If a bounce occures then RESET
+    val_pin_rojo_t2 = digitalRead(ROJO_T2);
+    //Check the time
+    t_rojo_t2 = millis();
+    
+    if (val_pin_rojo_t2 == HIGH)
+    {
+      led_rojo_t2 = 1;
+      state_tina5 = 0;
+    }
+    if(t_rojo_t2 - t_0_rojo_t2 > bounce_delay_rojo_t2){
+      state_tina5 = 4;
+    }
+    break;
+
+  case 4: //TRIGGERED
+    led_rojo_t2 = 0;
+    debugln("TRIGGERED LED_ROJO_T2");
+    state_tina5 = 0;
+    //state_tina2 = 5;
+    break;
+
+  }
+}
+void SM_LAMA_T2() //STATE_TINA6 // Qué sucede cuando se enciende el electrodo con el led amarillo del tinaco 2?
+{
+  //Afuera del switch
+  //INVIERTI LAS POLARIZACIONES 
+  val_pin_ama_t2 = digitalRead(AMA_T2);
+  state_prev_tina6 = state_tina6;
+
+  switch (state_tina6)
+  {
+
+  case 0: //RESET
+   //Catch all "home base" for the State MAchine
+    state_tina6 = 1;
+    break;
+  
+  case 1: //WAIT
+    //Wait for the switch to go low
+    if(val_pin_ama_t2 == LOW){
+      state_tina6 = 2;
+    }
+    break;
+  
+  case 2: //ARMING
+  //Empezamos a contar si este low es un low de 2 segundos
+    t_0_ama_t2 = millis();
+    state_tina6 = 3;
+    break;
+
+  case 3: //ARMED
+  //Check to see if the proper has delay has passed.  If a bounce occures then RESET
+    val_pin_ama_t2 = digitalRead(AMA_T2);
+    //Check the time
+    t_ama_t2 = millis();
+    
+    if (val_pin_ama_t2 == HIGH)
+    {
+      led_amarillo_t2 = 1;
+      state_tina6 = 0;
+    }
+    if(t_ama_t2 - t_0_ama_t2 > bounce_delay_ama_t2){
+      state_tina6 = 4;
+    }
+    break;
+
+  case 4: //TRIGGERED
+    led_amarillo_t2 = 0;
+    debugln("TRIGGERED LED_AMARILLO_T2");
+    state_tina6 = 0;
+    //state_tina2 = 5;
+    break;
+
+  }
+}
+void SM_LVERDE_T2() //STATE_TINA7
+{
+  //Afuera del switch
+  //INVIERTI LAS POLARIZACIONES 
+  val_pin_verde_t2 = digitalRead(VERDE_T2);
+  state_prev_tina7 = state_tina7;
+
+  switch (state_tina7)
+  {
+
+  case 0: //RESET
+   //Catch all "home base" for the State MAchine
+    state_tina7 = 1;
+    break;
+  
+  case 1: //WAIT
+    //Wait for the switch to go low
+    if(val_pin_verde_t2 == LOW){
+      state_tina7 = 2;
+    }
+    break;
+  
+  case 2: //ARMING
+  //Empezamos a contar si este low es un low de 2 segundos
+    t_0_verde_t2 = millis();
+    state_tina7 = 3;
+    break;
+
+  case 3: //ARMED
+  //Check to see if the proper has delay has passed.  If a bounce occures then RESET
+    val_pin_verde_t2 = digitalRead(VERDE_T2);
+    //Check the time
+    t_verde_t2 = millis();
+    
+    if (val_pin_verde_t2 == HIGH)
+    {
+      led_verde_t2 = 1;
+      state_tina7 = 0;
+    }
+    if(t_verde_t2 - t_0_verde_t2 > bounce_delay_verde_t2){
+      state_tina7 = 4;
+    }
+    break;
+
+  case 4: //TRIGGERED
+    led_verde_t2 = 0;
+    debugln("TRIGGERED LED_VERDE_T2");
+    state_tina7 = 0;
+    //state_tina2 = 5;
+    break;
+
+  }
+}
+
+void CUENTA_TRABAJO_BDA(){ // Tiempos de trabajo y de descanso de la bombda de agua para evitar el mayor desgaste
+  switch (state_wbda)
+  {
+  
+  case 0: // START TIMER
+  //Aqui funciona bien el timer pero hay que seguir probando
+  work_bda_timer_0 = millis();
+    state_wbda = 1;
+    break;
+
+  case 1: //Almacena ultimo valor
+    //work_bda_timer_0 = millis();
+    //Divide entre 1000 para no ocupar más memoria? NOP
+    last_cuenta_0 = cuenta_tiempo_0 / 1000;
+    last_cuenta_1 = cuenta_tiempo_1 / 1000;
+    last_cuenta_2 = cuenta_tiempo_2 / 1000;
+    last_cuenta_3 = cuenta_tiempo_3 / 1000;
+    if(pog_1 == 1){
+      state_wbda = 2;
+     }
+
+    break;
+
+
+  case 2: // Do nothing WAIT
+
+  debugln("Entramos a caso 3 wbda");
+  // PRUEBA stuPID jajaja y si funcionó
+  suma_lista_caso_6 += last_cuenta_0;
+  suma_lista_caso_7 += last_cuenta_1;
+  suma_lista_caso_8 += last_cuenta_2;
+  suma_lista_caso_9 += last_cuenta_3;
+  //Se va a guardar en las casillas del array la duración del tiempo de encendido de bda
+  //guarda_suma_lista_caso_6[counter_caso_6] = last_cuenta_0;
+  //guarda_suma_lista_caso_7[counter_caso_7] = last_cuenta_1;
+  //guarda_suma_lista_caso_8[counter_caso_8] = last_cuenta_2;
+  //guarda_suma_lista_caso_9[counter_caso_9] = last_cuenta_3;
+  //debug("Este es el counter_caso_9: ");
+  //debugln(counter_caso_9);
+  //los counter los tengo que pasar a su respectivos casos LISTO
+  //counter_caso_6++;
+  //counter_caso_7++;
+  //counter_caso_8++;
+  //counter_caso_9++;
+  //SUMA VARIABLES
+  //for(int i = 0; i < 7; i ++){
+  //  //Suma todos los argumentos de las listas
+  //  suma_lista_caso_6 += guarda_suma_lista_caso_6[i];
+  //  suma_lista_caso_7 += guarda_suma_lista_caso_7[i];
+  //  suma_lista_caso_8 += guarda_suma_lista_caso_8[i];
+  //  suma_lista_caso_9 += guarda_suma_lista_caso_9[i];
+  //  debug("Repite: ");
+  //  debugln(i);
+  //}
+  debug("Lista caso 6: ");
+  debugln(suma_lista_caso_6);
+  debug("Lista caso 7: ");
+  debugln(suma_lista_caso_7);
+  debug("Lista caso 8: ");
+  debugln(suma_lista_caso_8);
+  debug("Lista caso 9: ");
+  debugln(suma_lista_caso_9);
+  suma_total = suma_lista_caso_6 + suma_lista_caso_7 + suma_lista_caso_8 + suma_lista_caso_9;
+  debug("suma total de las listas:");
+  debugln(suma_total);
+  //pog_1 = 0;
+  /*EL SIGUIENTE IF LO TIENES QUE COLOCAR EN LOS CASOS DONDE SE ENCIENDE LA BDA
+  PERO HAZ UNA FUNCIÓN PARA ESO Y QUE SE EJECUTE Y SE VEA DECENTE EL CODIGO*/
+  if(suma_total >= work_bda_6h){ //Si la suma total es mayor a 6h entonces...
+     debugln("Inside the if of total sum");
+     //work_bda_timer_0 = millis();
+     //debugln(work_bda_timer_0);
+     state_wbda = 3;
+  }
+  if(suma_total < work_bda_6h){
+  debugln("Es menor el tiempo de 6h");
+  state_wbda = 0;
+  }
+     break;
+
+  case 3:
+  //Si ya estuvo encendida 6h y no ha pasado un tiempo mayor a 24h
+  //Entonces apaga la bomba por 24h
+    work_bda_timer_24h = millis();
+    //variable momentanea
+    //unsigned long pogpog = work_bda_timer_24h - work_bda_timer_0;
+    //debugln(pogpog);
+    //Si el tiempo es menor a 24h
+    if(work_bda_timer_24h - work_bda_timer_0 < work_bda_24h){
+    //APAGA LA BOMBA PÓR 24H
+    //debugln("LA BOMBA SE DEBE DE APAGAR 24H");
+    debugln("LA BOMBA SE DEBE DE APAGAR 20min");
+    descanso_bda_0_dia = millis();
+    state_tina1 = 11;
+    debugln(state_tina1);
+    //conteo_bda = 6;
+    state_wbda = 0;
+    }
+    //Si la bomba ya se ha encendido 6h pero han pasado más de 24h
+    //Y reinicia los timers de 6h
+    if(work_bda_timer_24h - work_bda_timer_0 > work_bda_24h){
+    //entonces sigue funcionando
+    debugln("SOLO REINICIA");
+    suma_lista_caso_6 = 0;
+    suma_lista_caso_7 = 0;
+    suma_lista_caso_8 = 0;
+    suma_lista_caso_9 = 0;
+    suma_total = 0;
+    pog_1 = 0;
+    state_wbda = 0;
+    } 
+    break;
+  }
+
+}
+
+
+
+void SM_BDA(){ //Bomba de agua
+  state_prev_tina1 = state_tina1;
+
+  switch (state_tina1)
+  {
+  case 0: //HOME
+    //Catch all "home base" for the State Machine
+    state_tina1 = 1;
+    break;
+  
+  case 1: //CHECK STATES
+  //ESTADO A
+    if (led_rojo_t1 == 0 && led_amarillo_t1 == 1 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 1 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO C, Se cambio a caso 3");
+      state_tina1 = 2; // STATE_A - AVISO
+    }
+    // Estado B
+    else if (led_rojo_t1 == 1 && led_amarillo_t1 == 1 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 0 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO C, Se cambio a caso 3");
+      state_tina1 = 2; // STATE_A - AVISO
+    }
+    // Estado C
+    else if (led_rojo_t1 == 0 && led_amarillo_t1 == 1 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 0 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO C, Se cambio a caso 3");
+      state_tina1 = 2; // STATE_A - AVISO
+    }
+    // Estado D
+    else if (led_rojo_t1 == 0 && led_amarillo_t1 == 0 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 0 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO D, Se cambio a caso 6");
+      //EMPIEZA EL TIMER
+      t_bda_0 = millis(); // start counting
+      //se encenderá la bomba
+      state_tina1 = 6; // STATE_D - UN ESTADO PARA QUE EL TINACO DE ARRIBA SE LLENE
+    }
+    // Estado E
+    else if (led_rojo_t1 == 1 && led_amarillo_t1 == 1 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 0 && led_verde_t2 == 0)
+    {
+      //debugln("ESTADO E, Se cambio a caso 5");
+      state_tina1 = 2; 
+    }
+    // Estado F
+    else if (led_rojo_t1 == 1 && led_amarillo_t1 == 1 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 1 && led_verde_t2 == 1 )
+    {
+      //debugln("ESTADO F, Se cambio a caso 5");
+      state_tina1 = 2; 
+    }
+    // Estado G
+    else if (led_rojo_t1 == 0 && led_amarillo_t1 == 0 && led_verde_t1 == 0 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 1 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO G, Se cambio a caso 6");
+      //EMPIEZA EL TIMER
+      t_bda_0 = millis(); // start counting
+      state_tina1 = 6; // STATE_D - UN ESTADO PARA QUE EL TINACO DE ARRIBA SE LLENE
+    }
+    // Estado H
+    else if (led_rojo_t1 == 0 && led_amarillo_t1 == 0 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 1 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO H, Se cambio a caso 7");
+      //EMPIEZA EL TIMER
+      t_bda_0 = millis(); // start counting
+      state_tina1 = 7; // STATE_H - SE LLENARÁ TINACO DE ARRIBA POR LA MITAD
+    }
+    // Estado I
+    else if (led_rojo_t1 == 0 && led_amarillo_t1 == 0 && led_verde_t1 == 0 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 0 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO I, Se cambio a caso 8");
+      //EMPIEZA EL TIMER
+      t_bda_0 = millis(); // start counting
+      state_tina1 = 8; // STATE_I - EL TINACO DE ARRIBA ESTARÁ COMPLETAMENTE LLENO
+    }
+    // Estado J
+    else if (led_rojo_t1 == 0 && led_amarillo_t1 == 0 && led_verde_t1 == 0 
+    && led_rojo_t2 == 1 && led_amarillo_t2 == 1 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO J, Se cambio a caso 6");
+      //EMPIEZA EL TIMER
+      t_bda_0 = millis(); // start counting
+      state_tina1 = 6; // STATE_D - UN ESTADO PARA QUE EL TINACO DE ARRIBA SE LLENE
+    }
+    // Estado K
+    else if (led_rojo_t1 == 0 && led_amarillo_t1 == 0 && led_verde_t1 == 1 
+    && led_rojo_t2 == 1 && led_amarillo_t2 == 1 && led_verde_t2 == 1)
+    {
+      //debugln("ESTADO K, Se cambio a caso 9");
+      //EMPIEZA EL TIMER
+      t_bda_0 = millis(); // start counting
+      state_tina1 = 9; // STATE_K - SE LLENA A LA MITAD EL TINACO DE ARRIBA Y EL DE ABAJO VACIO
+    }
+    // ESTADO L
+    else if(led_rojo_t1 == 0 && led_amarillo_t1 == 1 && led_verde_t1 == 1 
+    && led_rojo_t2 == 1 && led_amarillo_t2 == 1 && led_verde_t2 == 1){      
+      // ESTADO L
+      //debugln("ESTADO L, Se cambio a caso 5");
+      state_tina1 = 5;
+    }
+    // ESTADO M
+    else if(led_rojo_t1 == 0 && led_amarillo_t1 == 1 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 0 && led_verde_t2 == 0){     
+      // VAMOS A CREAR UN AVISO DE QUE EL TINACO DE ARRIBA SE ENCUENTRA LLENO
+      // Y EL DE ABAJO SE ESTÁ LLENANDO
+      //debugln("ESTADO M, Se cambio a caso 10");
+      state_tina1 = 4;
+    }
+    // ESTADO N
+    else if(led_rojo_t1 == 0 && led_amarillo_t1 == 0 && led_verde_t1 == 1 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 0 && led_verde_t2 == 0){  
+      //debugln("ESTADO N, Se cambio a caso 10");
+      state_tina1 = 4;
+    }
+    // ESTADO P
+    else if(led_rojo_t1 == 0 && led_amarillo_t1 == 0 && led_verde_t1 == 0 
+    && led_rojo_t2 == 0 && led_amarillo_t2 == 0 && led_verde_t2 == 0){
+      //debugln("ESTADO P, Se cambio a caso 10");
+      state_tina1 = 4;
+    }
+    else
+    {
+      //debugln("SUWI");
+      state_tina1 = 5; // APAGA BOMBA Y VUELVE A HOME PARA OBTENER LOS DATOS DE NUEVO
+      //Se llega a este estado
+    }
+    break;
+
+  case 2:
+    debugln("La cisterna aún no tiene suficiente agua o ya se lleno tinaco");
+    state_tina1 = 0;
+  break;
+  
+  //  case 3: //WAIT
+  //     //do nothing, the main loop can progress this Machine from state 1 to state 2
+  //   break;
+    
+  case 4:
+    debugln("El tinaco de arriba se encuentra lleno");
+    state_tina1 = 0; //APAGA BDA
+  break;
+
+  case 5: //APAGA LA BOMBA
+    digitalWrite(Bomba_agua, LOW);
+    analogWrite(led_bda, 0);
+    pog_1 = 0;
+    state_tina1 = 0; 
+  break;
+  
+  case 6: 
+    
+    digitalWrite(Bomba_agua, HIGH);
+    analogWrite(led_bda, 255);
+    t_bda = millis();
+    //Para aumentar 1 a los argumentos de la lista
+    //counter_caso_6++;
+    // Para almacenar tiempo anterior usar esta lógica
+    //suma_pog_caso_6++;
+    //debug("Suma_pog_caso 6: ");
+    //debugln(suma_pog_caso_6);
+    //if(suma_pog_caso_6 == 1){debugln("Se agrego uno a counter_caso_6: ");counter_caso_6++;} 
+
+    //almacena el tiempo en que esta encendida
+    cuenta_tiempo_0 = t_bda - t_bda_0;
+    debug("Este es el tiempo 0: ");
+    debugln(cuenta_tiempo_0);
+
+    //VER SI ENTRA CUANDO YA SE CUMPLE EL TIEMPO
+    //APAGADO_6H();
+    //Checa el tiempo de encendido de la bda
+    if(t_bda - t_bda_0 > tiempo_espera_bomba_encendido){
+      pog_1 = 1;
+      descanso_bda_0 = millis();
+      state_tina1 = 10; //Empieza el descanso de la bomba de agua
+    }
+    if(led_rojo_t1 == 1 || led_verde_t2 == 0){
+      pog_1 = 1;
+      state_tina1 = 5; //Apaga la bda
+    }
+    
+    break;
+
+    case 7:
+    digitalWrite(Bomba_agua, HIGH);
+    analogWrite(led_bda, 255);
+    t_bda = millis();
+
+    //Para aumentar 1 a los argumentos de la lista
+    //counter_caso_7++;
+    // Para almacenar tiempo anterior usar esta lógica
+    //suma_pog_caso_7++;
+    //debugln(suma_pog_caso_7);
+    //debug("Suma_pog_caso 7: ");
+    //if(suma_pog_caso_7 == 1){debugln("Se agrego uno a counter_caso 7: ");counter_caso_7++;}
+
+    //almacena el tiempo en que esta encendida
+    cuenta_tiempo_1 = t_bda - t_bda_0;
+    debug("Este es el tiempo 1: ");
+    debugln(cuenta_tiempo_1);
+
+    //VER SI ENTRA CUANDO YA SE CUMPLE EL TIEMPO
+    //APAGADO_6H();
+    //Checa el tiempo de encendido de la bda
+    if(t_bda - t_bda_0 > tiempo_espera_bomba_encendido){
+      pog_1 = 1;
+      descanso_bda_0 = millis();
+      state_tina1 = 10; //Empieza el descanso de la bomba de agua
+    }
+    if(led_rojo_t1 == 1 || led_amarillo_t2 == 0){
+      pog_1 = 1;
+      state_tina1 = 5; //Apaga la bda  
+    }    
+    break;
+
+    case 8:
+    digitalWrite(Bomba_agua, HIGH);
+    analogWrite(led_bda, 255);
+    //Para aumentar 1 a los argumentos de la lista
+    // Para almacenar tiempo anterior usar esta lógica
+    //suma_pog_caso_8++;
+    //debug("Suma_pog_caso 8: ");
+    //debugln(suma_pog_caso_8);
+    //if(suma_pog_caso_8 == 1){debugln("Se agrego uno a counter_caso_8: ");counter_caso_8++;}
+
+    t_bda = millis();
+    //almacena el tiempo en que esta encendida
+    cuenta_tiempo_2 = t_bda - t_bda_0;
+    debug("Este es el tiempo 2: ");
+    debugln(cuenta_tiempo_2);
+
+    //VER SI ENTRA CUANDO YA SE CUMPLE EL TIEMPO
+    //APAGADO_6H();
+
+    //Checa el tiempo de encendido de la bda
+    if(t_bda - t_bda_0 > tiempo_espera_bomba_encendido){
+      pog_1 = 1;
+      descanso_bda_0 = millis();
+      state_tina1 = 10; //Empieza el descanso de la bomba de agua
+    }
+    if(led_amarillo_t1 == 1 || led_verde_t2 == 0){
+      pog_1 = 1;
+      state_tina1 = 5; //Apaga la bda  
+    }     
+    break;
+    
+    case 9:
+    digitalWrite(Bomba_agua, HIGH);
+    analogWrite(led_bda, 255);
+
+    //Solo para ver si suma_total se lee bien aqui
+    //debugln(suma_total);
+    //Para aumentar 1 a los argumentos de la lista
+    //counter_caso_9++;
+    // Para almacenar tiempo anterior usar esta lógica
+    //suma_pog_caso_9++;
+    //debug("Suma_pog_caso 9: ");
+    //debugln(suma_pog_caso_9);
+    //if(suma_pog_caso_9 == 1){debugln("Se agrego uno a counter_caso 9: ");counter_caso_9++;}
+
+    t_bda = millis();
+    //almacena el tiempo en que esta encendida
+    cuenta_tiempo_3 = t_bda - t_bda_0;
+    debug("Este es el tiempo 3: ");
+    debugln(cuenta_tiempo_3);
+
+    //VER SI ENTRA CUANDO YA SE CUMPLE EL TIEMPO
+    //APAGADO_6H();
+        
+    //Checa el tiempo de encendido de la bda
+    if(t_bda - t_bda_0 > tiempo_espera_bomba_encendido){
+      descanso_bda_0 = millis();
+      debug("Este el tiempo cero descanso bda: ");
+      debugln(descanso_bda_0);
+      pog_1 = 1;
+      state_tina1 = 10; //Empieza el descanso de la bomba de agua
+    }
+    if(led_rojo_t1 == 1 || led_amarillo_t2 == 0){
+      debugln("Entramos en el if del led rojo t1: ");
+      pog_1 = 1;
+      state_tina1 = 5; //Apaga la bda  
+    }        
+    break;
+    
+    case 10:
+      digitalWrite(Bomba_agua, LOW); // APAGA LA BOMBA
+      analogWrite(led_bda, 0);
+      descanso_bda = millis();
+      debug("Este es descanso_bda: ");
+      debugln(descanso_bda);
+      if(descanso_bda - descanso_bda_0 >= tiempo_espera_bomba_apagado){ 
+        // cambia de estado 
+        state_tina1 = 0;
+        }
+    break;
+
+    case 11:
+    //if(conteo_bda = 6){
+     digitalWrite(Bomba_agua, LOW);
+     analogWrite(led_bda, 0);
+     descanso_bda_dia = millis();
+     if(descanso_bda_dia - descanso_bda_0_dia >= tiempo_descanso_dia_bomba){
+      debugln("Estamos en el caso 11");
+      suma_lista_caso_6 = 0;
+      suma_lista_caso_7 = 0;
+      suma_lista_caso_8 = 0;
+      suma_lista_caso_9 = 0;
+      suma_total = 0;
+      pog_1 = 0;
+      conteo_bda = 0;
+      //Reinicia los estados en la función principal y que lea desde cero
+      state_tina1 = 5;
+      //Vuelve al estado cero de esta función o switch y vuelve a almacenar
+      //state_wbda = 0;
+       }
+      break;
+  }
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  
+  //descanso_bda_0_dia = millis();
+  //Tinaco 1
+  SM_LROJO_T1();
+  SM_LAMA_T1();
+  SM_LVERDE_T1();
+  //Tinaco 2
+  SM_LROJO_T2();
+  SM_LAMA_T2();
+  SM_LVERDE_T2();
+  CUENTA_TRABAJO_BDA();
+  
+  SM_BDA();
+
+  // last_cuenta_0 = cuenta_tiempo_0;
+  // last_cuenta_1 = cuenta_tiempo_1;
+  // last_cuenta_2 = cuenta_tiempo_2;
+  // last_cuenta_3 = cuenta_tiempo_3;
+  //Tiempo de 24h de descanso para la bda si alcanza 6 ciclos de trabajo al día
+  // debug("Este es el conteo_bda: ");
+  // debugln(conteo_bda);
+  // if (state_tina1 == 6 || state_tina1 == 7 || state_tina1 == 8 || state_tina1 == 9)
+  // {
+  //   conteo_bda++; 
+  // }
+  //Cambiar variables de tiempo
+    // if(cuenta_tiempo_total - cuenta_dia > work_bda && cuenta_dia < 15000){ /* 7200000 debe ser 6 horas 
+    // osea cuando ya haya trabajado 6 horas tiene que descansar 24h  86400000ms
+    //  osea 86400000 ms*/
+    //  debugln("Bomba apagate pog");
+    //  digitalWrite(Bomba_agua, LOW);
+    //  digitalWrite(led_bda, LOW);
+    //  descanso_bda_dia = millis();
+    //  if(descanso_bda_dia - descanso_bda_0_dia >= tiempo_descanso_dia_bomba){
+    //     conteo_bda = 0;
+    //     state_tina1 = 0;
+    //     cuenta_tiempo_0 -= cuenta_tiempo_total;
+    //     cuenta_tiempo_1 -= cuenta_tiempo_total; 
+    //     cuenta_tiempo_2 -= cuenta_tiempo_total;
+    //     cuenta_tiempo_3 -= cuenta_tiempo_total;
+    //    }
+    // } 
+
+    
+}
